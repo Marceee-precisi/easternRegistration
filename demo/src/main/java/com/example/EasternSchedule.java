@@ -29,8 +29,8 @@ public class EasternSchedule {
     private static final String BASE = "https://reg-prod.ec.easternct.edu/StudentRegistrationSsb";
     private String term;
 
-    CookieManager cookieManager;
-    HttpClient client;
+    private CookieManager cookieManager;
+    private HttpClient client;
 
 
     /**
@@ -135,6 +135,7 @@ public class EasternSchedule {
      */
     public ArrayList<Term>getAvailableTerms() throws IOException, InterruptedException {
 
+        Files.createDirectories(Path.of("cache"));
         String content = retrieveTerms();
         ArrayList<Term> terms = parseTerms(content);
         return terms;
@@ -240,9 +241,14 @@ public class EasternSchedule {
      * @throws Exception if there is an error in retreiving courses
      */
     public ArrayList<Course> queryCourseBySubject(String subject) throws Exception {
-        
-        cacheCourses(subject);
-        Path cacheFile = createCacheFile(subject);
+        if (subject == null || !subject.matches("[A-Za-z]+")) {
+            throw new IllegalArgumentException("Subject must contain letters only.");
+        }
+
+        String normalizedSubject = subject.toUpperCase(java.util.Locale.ROOT);
+        Files.createDirectories(Path.of("cache"));
+        cacheCourses(normalizedSubject);
+        Path cacheFile = createCacheFile(normalizedSubject);
         String content = Files.readString(cacheFile);
         
         ArrayList<Course> courses = parseCourses(content);
