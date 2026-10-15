@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A student and the course sections they have added to their schedule.
+ * A student's course schedule and registration checks.
  */
 public class Student {
-    /** The maximum credit load allowed for this project. */
+    /** The maximum number of credits a student may register for. */
     public static final int MAX_CREDITS = 17;
 
     private String studentId;
