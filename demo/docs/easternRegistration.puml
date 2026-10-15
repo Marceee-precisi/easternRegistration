@@ -2,36 +2,114 @@
 skinparam classAttributeIconSize 0
 hide circle
 
+class MainMenu {
+  -easternSchedule: EasternSchedule
+  -scanner: Scanner
+  -student: Student
+  --
+  +MainMenu()
+  +MainMenu(easternSchedule: EasternSchedule, scanner: Scanner)
+  +open(): void
+  -browseCourses(): void
+  -searchCourses(): void
+  -addCourse(): void
+  -dropCourses(): void
+  -displaySchedule(): void
+  -findMatchingCourses(): SearchResults
+  -promptExcludedDay(): Optional<DayOfWeek>
+}
+
+class "MainMenu.SearchResults" as SearchResults <<record>> {
+  -courses: List<Course>
+}
+
+class Student {
+  +{static} MAX_CREDITS: int = 17
+  -studentId: String
+  -firstName: String
+  -lastName: String
+  -registeredCourses: List<Course>
+  --
+  +Student()
+  +Student(studentId: String, firstName: String, lastName: String)
+  +getStudentId(): String
+  +getFirstName(): String
+  +getLastName(): String
+  +getRegisteredCourses(): List<Course>
+  +getCreditsEnrolled(): double
+  +addCourse(course: Course): RegistrationResult
+  +addCourses(courses: List<Course>): List<RegistrationResult>
+  +dropCourse(course: Course): boolean
+  +dropAllCourses(): int
+}
+
+class "Student.RegistrationResult" as RegistrationResult <<record>> {
+  -status: RegistrationStatus
+  -message: String
+}
+
+enum "Student.RegistrationStatus" as RegistrationStatus {
+  ADDED
+  ALREADY_REGISTERED
+  COURSE_FULL
+  CREDIT_VALUE_UNKNOWN
+  CREDIT_LIMIT_EXCEEDED
+  TIME_CONFLICT
+}
+
 class EasternSchedule {
-  -{static} BASE: String = "https://reg-prod.ec.easternct.edu/StudentRegistrationSsb"
+  -{static} BASE: String
   -term: String
-  ~cookieManager: CookieManager
-  ~client: HttpClient
+  -cookieManager: CookieManager
+  -client: HttpClient
   --
   +EasternSchedule()
   +getTerm(): String
+  +getAvailableTerms(): ArrayList<Term>
+  +queryCourseBySubject(subject: String): ArrayList<Course>
   -retrieveTerms(): String
   -parseTerms(content: String): ArrayList<Term>
   -parseCourses(content: String): ArrayList<Course>
-  +getAvailableTerms(): ArrayList<Term>
   -postTerm(): String
   -createCacheFile(subject: String): Path
   -cacheCourses(subject: String): void
-  +queryCourseBySubject(subject: String): ArrayList<Course>
 }
 
 record Course {
-  -id : String
+  -id: String
   -subject: String
   -courseNumber: String
+  -courseTitle: String
+  -creditHours: Double
+  -creditHourLow: Double
+  -creditHourHigh: Double
+  -maximumEnrollment: Integer
+  -enrollment: Integer
+  -seatsAvailable: Integer
+  -openSection: Boolean
+  -courseReferenceNumber: String
+  -sequenceNumber: String
+  -faculty: List<Faculty>
   -meetingsFaculty: List<MeetingFaculty>
+  --
+  +creditsForLimit(): double
+  +creditsLabel(): String
+  +isOpen(): boolean
+  +instructorsLabel(): String
+  +meetsOn(day: DayOfWeek): boolean
+  +conflictsWith(other: Course): boolean
+  +meetingsLabel(): String
 }
 
-record MeetingFaculty {
+record "Course.Faculty" as Faculty {
+  -displayName: String
+}
+
+record "Course.MeetingFaculty" as MeetingFaculty {
   -meetingTime: MeetingTime
 }
 
-record MeetingTime {
+record "Course.MeetingTime" as MeetingTime {
   -monday: boolean
   -tuesday: boolean
   -wednesday: boolean
@@ -39,6 +117,16 @@ record MeetingTime {
   -friday: boolean
   -saturday: boolean
   -sunday: boolean
+  -beginTime: String
+  -endTime: String
+  -buildingDescription: String
+  -room: String
+  -startDate: String
+  -endDate: String
+  --
+  +occursOn(day: DayOfWeek): boolean
+  +daysLabel(): String
+  +conflictsWith(other: MeetingTime): boolean
 }
 
 record Term {
@@ -46,12 +134,16 @@ record Term {
   -description: String
 }
 
-'Aggregation and composition
-MeetingFaculty "1" o-- "1" MeetingTime : has a >
-Course "1" 0-- "0*" MeetingFaculty: has a >
-
-'Dependencies
-EasternSchedule ..> Term : uses
-EasternSchedule ..> Course : uses
+MainMenu --> EasternSchedule : searches
+MainMenu --> Student : manages
+MainMenu ..> SearchResults
+Student "1" o-- "0..*" Course : registers for
+Student ..> RegistrationResult
+RegistrationResult ..> RegistrationStatus
+Course "1" o-- "0..*" Faculty
+Course "1" o-- "0..*" MeetingFaculty
+MeetingFaculty "1" *-- "1" MeetingTime
+EasternSchedule ..> Term : parses
+EasternSchedule ..> Course : parses
 
 @enduml
