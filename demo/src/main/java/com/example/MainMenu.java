@@ -22,7 +22,7 @@ public class MainMenu {
     }
 
     /**
-     * Creates a menu with injectable dependencies for testing or embedding.
+     * Creates a menu using the supplied schedule service and input.
      *
      * @param easternSchedule the schedule service
      * @param scanner the source of console input

@@ -20,9 +20,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * 
- * Provides access to Eastern's schedule of classes for a specified term,
- * using cached values if available
+ * Provides access to Eastern's schedule of classes for a term.
+ * Course data is cached locally when available.
  */
 public class EasternSchedule {
 
@@ -34,15 +33,12 @@ public class EasternSchedule {
 
 
     /**
-     * 
-     * Constructs an EasternSchedule object with default term
+     * Creates a schedule client for the default term.
      */
     public EasternSchedule()  {
 
-        // set term (202710 is Fall 2026)
-        this.term = "202710"; 
+        this.term = "202710";
 
-        // set cookieManager and build client for web retreival        
         cookieManager = new CookieManager();
         cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
         
@@ -61,9 +57,9 @@ public class EasternSchedule {
     }
 
     /**
-     * Retrieves available terms (max of 25) from the Eastern's schedule, or from cache
-     * if available
-     * @return A JSON string representing the available terms
+     * Retrieves up to 25 terms from the cache or Eastern's schedule.
+     *
+     * @return the available terms as JSON
      * @throws IOException if cache file exists but cannot be read
      * @throws InterruptedException if a web request is interrupted
      */
@@ -99,9 +95,10 @@ public class EasternSchedule {
     }
 
     /**
-     * Parses the JSON content of available terms into an Arrayist of Terms
-     * @param content The JSON string representing the available terms
-     * @return An ArrayList of Terms
+     * Parses the JSON content into terms.
+     *
+     * @param content JSON containing the available terms
+     * @return the parsed terms
      * @throws IOException if terms cannot be parsed
      */
     private ArrayList<Term> parseTerms(String content) throws IOException {
@@ -118,7 +115,7 @@ public class EasternSchedule {
      * Parses content into a list of courses
      * @param content the content to parse
      * @return ArrayList<Course> an {@link ArrayList} of {@link Course} objects
-     * @throws IOException
+     * @throws IOException if the JSON cannot be parsed
      */
     private ArrayList<Course> parseCourses(String content) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
@@ -128,8 +125,9 @@ public class EasternSchedule {
     }
 
     /**
-     * Retrieves and parses the available terms from Eastern's schedule
-     * @return An ArrayList of Term objects
+     * Retrieves and parses the available terms.
+     *
+     * @return the available terms
      * @throws IOException if cannot parse terms
      * @throws InterruptedException if a web request is interrupted
      */
@@ -142,9 +140,10 @@ public class EasternSchedule {
     }
 
     /**
-     * Sets the term for the Eastern schedule
-     * @return The response body from the server after setting the term
-     * @throws Exception If there is an error during the HTTP request
+     * Sets the active term on Eastern's schedule service.
+     *
+     * @return the server response body
+     * @throws Exception if the request fails
      */
 
     private String postTerm() throws Exception {
@@ -179,32 +178,32 @@ public class EasternSchedule {
         return response.body();
 }
 
-    /** 
-     * @param subject
-     * @return Path
+    /**
+     * Returns the cache file for a subject in the active term.
+     *
+     * @param subject the subject abbreviation
+     * @return the cache file path
      */
     private Path createCacheFile(String subject) {
         return Path.of("cache/term_" + term + "_" + subject + ".txt");
     }
 
     /**
-     * Caches courses for current term and specified subject. Does nothing
-     * if cache file already exists; otherwise retreives data from webserver
+     * Caches courses for the active term and subject if no cache exists.
+     *
      * @param subject the subject to cache courses for
-     * @throws Exception if there is an error connecting to the webserver
+     * @throws Exception if the service request or cache write fails
      */
     private void cacheCourses(String subject) throws Exception {
         
         Path cacheFile = createCacheFile(subject);
 
-        // if file already exists, return
         if (Files.exists(cacheFile)) {            
            System.out.println("Using cached term data from " + cacheFile + "...");
            return;           
         }
 
-        // post request to establish term is required
-        String term_response = postTerm();
+        postTerm();
 
         String url = BASE + "/ssb/searchResults/searchResults?" +
         "txt_subject=" + subject + "&" +
@@ -228,17 +227,15 @@ public class EasternSchedule {
             );
         }
 
-        // save data to cache file
         Files.writeString(cacheFile, response.body());
     }
 
     /** 
-     * Queries courses based on subject. First, we retreive data from the 
-     * server and create a cached file if the file does not exist. Then we
-     * extract courses from the appropriate file.
+     * Returns courses for a subject, using the local cache when available.
+     *
      * @param subject the subject of courses to retrieve
      * @return an {@link ArrayList} of {@link Course} objects
-     * @throws Exception if there is an error in retreiving courses
+     * @throws Exception if the schedule data cannot be retrieved or parsed
      */
     public ArrayList<Course> queryCourseBySubject(String subject) throws Exception {
         if (subject == null || !subject.matches("[A-Za-z]+")) {
